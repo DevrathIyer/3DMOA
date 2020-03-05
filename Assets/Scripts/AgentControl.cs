@@ -43,7 +43,7 @@ public class AgentControl : MonoBehaviour
             {
                 anim.enabled = true;
                 pauseLocked = false;
-                notReset = false; 
+                notReset = false;
             }
         }
         if (AgentManagerControl.instance.testFlag !=0)
@@ -54,6 +54,10 @@ public class AgentControl : MonoBehaviour
                 anim.SetBool("walking", false);
                 agent.SetDestination(agent.transform.position);
                 this.transform.GetChild(1).gameObject.GetComponent<SkinnedMeshRenderer>().material = black;
+            }
+            if(AgentManagerControl.instance.done)
+            {
+              this.transform.GetChild(1).gameObject.GetComponent<SkinnedMeshRenderer>().material = color;
             }
         }
         else

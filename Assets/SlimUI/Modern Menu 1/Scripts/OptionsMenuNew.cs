@@ -2,6 +2,8 @@
 using System.Collections;
 using UnityEngine.UI;
 using TMPro;
+using SimpleJSON;
+using UnityEngine.Networking;
 
 public class OptionsMenuNew : MonoBehaviour {
 
@@ -46,18 +48,15 @@ public class OptionsMenuNew : MonoBehaviour {
     public GameObject invertmousetext;
 
     // sliders
-    public GameObject agentSpeedSlider;
     public GameObject sensitivityYSlider;
     public GameObject sensitivityXSlider;
     public GameObject playerSpeedSlider;
 
-    public GameObject agentLabel;
-    public GameObject increaseAgentButton;
-    public GameObject decreaseAgentButton;
-
     public GameObject ExperimentID;
     public GameObject Key;
     public GameObject Worker;
+
+    public GameObject ResponseText;
 
     private int agentCount = 0;
     private int maxAgents = 16;
@@ -67,7 +66,6 @@ public class OptionsMenuNew : MonoBehaviour {
     private string keyvalue = "";
     private string workervalue = "";
 
-    private float sliderValueAgentSpeed = 0.0f;
     private float sliderValueXSensitivity = 0.0f;
     private float sliderValueYSensitivity = 0.0f;
     private float sliderValueSmoothing = 0.0f;
@@ -78,8 +76,6 @@ public class OptionsMenuNew : MonoBehaviour {
     public void Start() {
 
         // check slider values
-        agentCount = PlayerPrefs.GetInt("AgentCount", 6);
-        agentLabel.GetComponent<TextMeshPro>().text = agentCount.ToString();
 
         //agentSpeedSlider.GetComponent<Slider>().value = PlayerPrefs.GetFloat("AgentSpeed",2f);
         playerSpeedSlider.GetComponent<Slider>().value = PlayerPrefs.GetFloat("PlayerSpeed");
@@ -89,6 +85,7 @@ public class OptionsMenuNew : MonoBehaviour {
         ExperimentID.GetComponent<TMP_Text>().text = PlayerPrefs.GetString("ExperimentID","NO EXPERIMENT");
         Key.GetComponent<TMP_Text>().text = PlayerPrefs.GetString("Key","NO KEY");
         Worker.GetComponent<TMP_Text>().text = PlayerPrefs.GetString("Worker", "NO WORKER");
+        ResponseText.GetComponent<TMP_Text>().text = "";
 
         // check full screen
         if (Screen.fullScreen == true) {
@@ -212,7 +209,6 @@ public class OptionsMenuNew : MonoBehaviour {
         sliderValuePlayerSpeed = playerSpeedSlider.GetComponent<Slider>().value;
         sliderValueXSensitivity = sensitivityXSlider.GetComponent<Slider>().value;
         sliderValueYSensitivity = sensitivityYSlider.GetComponent<Slider>().value;
-        sliderValueAgentSpeed = agentSpeedSlider.GetComponent<Slider>().value;
 
         keyvalue = Key.GetComponent<TMP_Text>().text;
         experimentIDvalue = ExperimentID.GetComponent<TMP_Text>().text;
@@ -230,8 +226,30 @@ public class OptionsMenuNew : MonoBehaviour {
         }
     }
 
-    public void SpeedSlider() {
-        PlayerPrefs.SetFloat("AgentSpeed", sliderValueAgentSpeed);
+    public void ConnectExperiment()
+    {
+      StartCoroutine(ConnectRequest());
+    }
+
+    IEnumerator ConnectRequest()
+    {
+      UnityWebRequest www = UnityWebRequest.Get("http://searchbwh.herokuapp.com/connect/?experimentID=" + experimentIDvalue.Split('\u200b')[0] + "&key=" + keyvalue.Split('\u200b')[0]);
+      yield return www.SendWebRequest();
+
+      Debug.Log(www.downloadHandler.text);
+      if(www.isNetworkError || www.isHttpError || www.downloadHandler.text.Equals("in exception")) {
+            ResponseText.GetComponent<TMP_Text>().text = "ERROR";
+        }
+      else {
+        JSONNode data = JSON.Parse(www.downloadHandler.text);
+        Debug.Log(data["agents"]);
+        PlayerPrefs.SetFloat("AgentSpeed", data["agent_speed"]);
+        PlayerPrefs.SetInt("AgentCount", data["agents"]);
+        PlayerPrefs.SetInt("Questions", data["questions"]);
+        PlayerPrefs.SetInt("MinTime", data["min_time"]);
+        PlayerPrefs.SetInt("MaxTime", data["max_time"]);
+        ResponseText.GetComponent<TMP_Text>().text = "SUCCESS";
+      }
     }
 
     public void PlayerSpeedSlider()
@@ -427,29 +445,6 @@ public class OptionsMenuNew : MonoBehaviour {
 		texturemedtextLINE.gameObject.SetActive(false);
 		texturehightextLINE.gameObject.SetActive(true);
 	}
-    public void IncreaseAgents()
-    {
-        agentCount += 1;
-        agentLabel.GetComponent<TextMeshPro>().text = agentCount.ToString();
-        if (agentCount == maxAgents)
-        {
-            increaseAgentButton.GetComponent<Button>().interactable = false;
-        }
-        decreaseAgentButton.GetComponent<Button>().interactable = true;
-        PlayerPrefs.SetInt("AgentCount", agentCount);
-    }
-    public void DecreaseAgents()
-    {
-        agentCount -= 1;
-        agentLabel.GetComponent<TextMeshPro>().text = agentCount.ToString();
-        if (agentCount == minAgents)
-        {
-            decreaseAgentButton.GetComponent<Button>().interactable = false;
-        }
-        increaseAgentButton.GetComponent<Button>().interactable = true;
-        PlayerPrefs.SetInt("AgentCount", agentCount);
-    }
-
     public void unPause()
     {
         camera.GetComponent<CameraControl>().OpenMenu = false;

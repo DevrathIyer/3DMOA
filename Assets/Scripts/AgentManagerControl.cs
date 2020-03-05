@@ -25,7 +25,7 @@ public class AgentManagerControl : MonoBehaviour
     public static AgentManagerControl instance = null;
 
     const int prac = 5;
-    const int trials = 30;
+    int trials = 30;
     int trial = 0;
     public int n;
     public int testFlag = 0;
@@ -34,7 +34,9 @@ public class AgentManagerControl : MonoBehaviour
     public int nClicks = 0;
     public bool OpenMenu = false;
     public bool clicked = false;
-
+    public int MinTime;
+    public int MaxTime;
+    public bool done;
     public List<int> clicks = new List<int>();
 
     public static int frames = 600;
@@ -100,7 +102,7 @@ public class AgentManagerControl : MonoBehaviour
         agentSpeed = PlayerPrefs.GetFloat("AgentSpeed",1f);
         if (agentSpeed < 0.1)
         {
-            PlayerPrefs.SetFloat("AgentSpeed", 1f);
+            //PlayerPrefs.SetFloat("AgentSpeed", 1f);
             agentSpeed = PlayerPrefs.GetFloat("AgentSpeed", 1f);
         }
         for (int i = 0; i < n; i++)
@@ -115,6 +117,12 @@ public class AgentManagerControl : MonoBehaviour
             surface = newAgent.transform.GetChild(1).gameObject;
             surface.GetComponent<SkinnedMeshRenderer>().material = mats[i];
         }
+        MinTime = PlayerPrefs.GetInt("MinTime");
+        MaxTime = PlayerPrefs.GetInt("MaxTime");
+        trials = PlayerPrefs.GetInt("Questions");
+        Debug.Log(n);
+        Debug.Log(MinTime);
+        Debug.Log(MaxTime);
     }
 
     // Update is called once per frame
@@ -126,6 +134,7 @@ public class AgentManagerControl : MonoBehaviour
             if (frames != 0)
             {
                 Instruction.GetComponent<TextMeshPro>().text = "";
+                done = false;
                 frames -= 1;
             }
             if (frames == 0)
@@ -170,16 +179,13 @@ public class AgentManagerControl : MonoBehaviour
                         point.pos = (player.transform.position.x + "," + player.transform.position.y);
                         point.agents = agent_data;
                         point.testpoint = false;
-                        Debug.Log(JsonUtility.ToJson(point));
-                        Debug.Log(point.experimentID.Equals("HelloWorld"));
-                        Debug.Log("HelloWorld".Length);
 
                         UnityWebRequest www = UnityWebRequest.Put("https://searchbwh.herokuapp.com/data/submit", JsonUtility.ToJson(point));
 
                         www.SetRequestHeader("Content-type", "application/json");
                         UnityWebRequestAsyncOperation request = www.SendWebRequest();
 
-                        frames = 30 * Random.Range(10, 30);
+                        frames = 30 * Random.Range(MinTime, MaxTime);
                         testFlag = 0;
                         clicked = false;
                         if (trial == trials)
@@ -190,13 +196,20 @@ public class AgentManagerControl : MonoBehaviour
                     }
                     else
                     {
+                      if(trial != trials)
+                      {
                         Instruction.GetComponent<TextMeshPro>().text = $"Trial {trial}/{trials} complete in {nClicks} " + ((nClicks > 1) ? "clicks" : "click") + "! Right Click to Continue...";
                         if (Input.GetMouseButton(1))
                         {
                             clicked = true;
                         }
+                      }
+                      else
+                      {
+                        Instruction.GetComponent<TextMeshPro>().text = $"Trial {trial}/{trials} complete in {nClicks} " + ((nClicks > 1) ? "clicks" : "click") + "! Thank you for completing the 3D MOA Experiment, you may now quit.";
+                      }
+                      done = true;
                     }
-
                 }
             }
         }
